@@ -79,7 +79,7 @@ class PermissionsHelper(val context: Context) {
         val permissions = ArrayList<Array<String>>()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             // As of version M (6) we need FINE_LOCATION (or COARSE_LOCATION, but we ask for FINE)
-            permissions.add(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION))
+            permissions.add(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             // As of version Q (10) we need FINE_LOCATION and BACKGROUND_LOCATION

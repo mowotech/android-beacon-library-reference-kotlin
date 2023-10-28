@@ -1,6 +1,8 @@
 package org.altbeacon.beaconreference
 
+import android.Manifest
 import android.app.AlertDialog
+import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -14,7 +16,13 @@ import org.altbeacon.beacon.Beacon
 import org.altbeacon.beacon.BeaconManager
 import org.altbeacon.beacon.MonitorNotifier
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.location.Location
+import androidx.core.app.ActivityCompat
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
 import org.altbeacon.beacon.permissions.BeaconScanPermissionsActivity
+import org.json.JSONObject
 
 class MainActivity : AppCompatActivity() {
     lateinit var beaconListView: ListView
@@ -23,6 +31,7 @@ class MainActivity : AppCompatActivity() {
     lateinit var rangingButton: Button
     lateinit var beaconReferenceApplication: BeaconReferenceApplication
     var alertDialog: AlertDialog? = null
+    val context: Context = this
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,6 +50,52 @@ class MainActivity : AppCompatActivity() {
         beaconCountTextView = findViewById<TextView>(R.id.beaconCount)
         beaconCountTextView.text = "No beacons detected"
         beaconListView.adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, arrayOf("--"))
+
+        val scanQRButton: Button = findViewById(R.id.scanQR)
+        scanQRButton.setOnClickListener {
+            requestDriver()
+        }
+
+        val editTextIdentification: TextView = findViewById(R.id.driverIdentification)
+        editTextIdentification.text = getSharedPreferences(context, "driverName", "-").toString()
+    }
+
+    private fun requestDriver() {
+        val volleyRequest = VolleyRequest(this)
+        val uuid = "631eaeaf-d0b3-11ea-80e9-005056b06a89"
+        val url = "http://81.171.29.53/api/v1/app/user-profile/check-uuid"
+
+        val jsonBody = JSONObject()
+        jsonBody.put("uuid", uuid)
+
+        volleyRequest.sendPostRequest(url, jsonBody,
+            { response ->
+                Log.d(TAG, "requestDriver response: $response")
+                parseDriverIdentification(uuid, response)
+            },
+            { error ->
+                Log.d(TAG, "requestDriver error: $error")
+            }
+        )
+    }
+
+    private fun parseDriverIdentification(uuid: String, response: JSONObject) {
+        try {
+            val driverObject = response.getJSONObject("driver")
+            val firstName = driverObject.getString("first_name")
+            val lastName = driverObject.getString("last_name")
+            val middleName = driverObject.getString("middle_name")
+            val fullName = "$lastName $firstName $middleName"
+
+            setSharedPreferences(context, "identification", uuid)
+            setSharedPreferences(context, "driverName", fullName)
+
+            val editTextIdentification: TextView = findViewById(R.id.driverIdentification)
+            editTextIdentification.text = fullName
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     override fun onPause() {
@@ -96,9 +151,10 @@ class MainActivity : AppCompatActivity() {
         builder.setTitle(dialogTitle)
         builder.setMessage(dialogMessage)
         builder.setPositiveButton(android.R.string.ok, null)
-        alertDialog?.dismiss()
-        alertDialog = builder.create()
-        alertDialog?.show()
+
+        //alertDialog?.dismiss()
+        //alertDialog = builder.create()
+        //alertDialog?.show()
     }
 
     val rangingObserver = Observer<Collection<Beacon>> { beacons ->
@@ -149,14 +205,41 @@ class MainActivity : AppCompatActivity() {
         builder.setTitle(dialogTitle)
         builder.setMessage(dialogMessage)
         builder.setPositiveButton(android.R.string.ok, null)
-        alertDialog?.dismiss()
-        alertDialog = builder.create()
-        alertDialog?.show()
 
+        //alertDialog?.dismiss()
+        //alertDialog = builder.create()
+        //alertDialog?.show()
+
+    }
+
+    private fun getSharedPreferences(context: Context, key: String, defaultValue: Any): Any? {
+        val sharedPreferences = context.getSharedPreferences(SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
+
+        when (defaultValue) {
+            is String -> return sharedPreferences.getString(key, defaultValue)
+            is Int -> return sharedPreferences.getInt(key, defaultValue)
+            is Boolean -> return sharedPreferences.getBoolean(key, defaultValue)
+        }
+
+        return null
+    }
+
+    private fun setSharedPreferences(context: Context, key: String, value: Any) {
+        val sharedPreferences = context.getSharedPreferences(SHARED_PREFERENCES_KEY, Context.MODE_PRIVATE)
+        val editor = sharedPreferences.edit()
+
+        when (value) {
+            is String -> editor.putString(key, value)
+            is Int -> editor.putInt(key, value)
+            is Boolean -> editor.putBoolean(key, value)
+        }
+
+        editor.apply()
     }
 
     companion object {
         val TAG = "MainActivity"
+        val SHARED_PREFERENCES_KEY = "okoDriveSharedPreferences"
         val PERMISSION_REQUEST_BACKGROUND_LOCATION = 0
         val PERMISSION_REQUEST_BLUETOOTH_SCAN = 1
         val PERMISSION_REQUEST_BLUETOOTH_CONNECT = 2
