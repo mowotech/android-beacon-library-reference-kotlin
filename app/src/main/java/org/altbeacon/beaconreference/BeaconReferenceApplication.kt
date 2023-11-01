@@ -12,12 +12,17 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
 import android.media.MediaPlayer
+import android.os.Looper
 import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.Observer
 import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import org.altbeacon.beacon.Beacon
 import org.altbeacon.beacon.BeaconManager
 import org.altbeacon.beacon.BeaconParser
@@ -35,7 +40,8 @@ class BeaconReferenceApplication: Application() {
     var region = Region("all-beacons", null, null, null)
     private var mediaPlayer: MediaPlayer? = null
     private var beaconRangeAgeMillis: Int = 10000
-    private var beaconSignalStrengthThreshold: Int = -70
+    private var beaconSignalStrengthThreshold: Int = -90
+
     private var foundLocation: Location? = null
     private lateinit var fusedLocationClient: FusedLocationProviderClient
 
@@ -89,6 +95,7 @@ class BeaconReferenceApplication: Application() {
 
         setupBeaconScanning()
     }
+
     fun setupBeaconScanning() {
         val beaconManager = BeaconManager.getInstanceForApplication(this)
 
@@ -143,7 +150,7 @@ class BeaconReferenceApplication: Application() {
         val pendingIntent = PendingIntent.getActivity(
                 this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT + PendingIntent.FLAG_IMMUTABLE
         )
-        builder.setContentIntent(pendingIntent);
+        builder.setContentIntent(pendingIntent)
         val channel =  NotificationChannel("beacon-ref-notification-id",
             "My Notification Name", NotificationManager.IMPORTANCE_DEFAULT)
         channel.description = "My Notification Channel Description"
@@ -226,6 +233,8 @@ class BeaconReferenceApplication: Application() {
 
         val formattedSpeed = "%.2f".format(speedKmph)
         val identification = getSharedPreferences(this, "identification", "") as String
+
+        //Log.d(TAG, "requestLocation response: ${lat.toString()} | ${long.toString()}")
 
         val jsonBody = JSONObject()
         jsonBody.put("beacon_id", identification)

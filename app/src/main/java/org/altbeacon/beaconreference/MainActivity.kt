@@ -58,6 +58,11 @@ class MainActivity : AppCompatActivity() {
 
         val editTextIdentification: TextView = findViewById(R.id.driverIdentification)
         editTextIdentification.text = getSharedPreferences(context, "driverName", "-").toString()
+
+        Intent(applicationContext, LocationService::class.java).apply {
+            action = LocationService.ACTION_START
+            startService(this)
+        }
     }
 
     private fun requestDriver() {
